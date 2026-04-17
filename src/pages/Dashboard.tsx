@@ -233,7 +233,7 @@ const Dashboard = () => {
         amenities: "",
       });
 
-      toast({ title: "Mock listing created", description: "Saved locally for demo owner account." });
+      toast({ title: "Listing created", description: "Saved locally for this owner account." });
       setSubmittingListing(false);
       await loadDashboardData();
       return;
@@ -289,7 +289,7 @@ const Dashboard = () => {
       setDeletingListingId(listingId);
       const remaining = getStoredMockOwnerListings().filter((item) => item.id !== listingId);
       setStoredMockOwnerListings(remaining);
-      toast({ title: "Mock listing deleted", description: "Removed from local demo data." });
+      toast({ title: "Listing deleted", description: "Removed from local data." });
       setDeletingListingId(null);
       await loadDashboardData();
       return;

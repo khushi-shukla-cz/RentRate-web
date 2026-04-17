@@ -40,7 +40,7 @@ const Login = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="rounded-lg border border-border bg-muted/50 p-3 text-xs text-muted-foreground">
-              <p className="font-medium text-foreground">Mock accounts</p>
+              <p className="font-medium text-foreground">Quick access accounts</p>
               <div className="mt-2 space-y-2">
                 <div>
                   <p>Owner: owner@rentrate.com</p>
