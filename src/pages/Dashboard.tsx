@@ -5,7 +5,7 @@ import TrustScoreBadge from "@/components/TrustScoreBadge";
 import PropertyCard from "@/components/PropertyCard";
 import ReviewCard from "@/components/ReviewCard";
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type { PropertyCardData } from "@/components/PropertyCard";
 import type { ReviewCardData } from "@/components/ReviewCard";
@@ -67,7 +67,7 @@ const Dashboard = () => {
       return;
     }
 
-    if (MOCK_AUTH_ENABLED) {
+    if (MOCK_AUTH_ENABLED || !isSupabaseConfigured) {
       setLoading(true);
 
       const ownerUser = mockUsers.find((item) => item.role === "owner");

@@ -4,14 +4,27 @@ import type { Database } from './types';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const HAS_SUPABASE_CONFIG = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
+
+// Prevent app boot failure in demo mode when .env values are missing.
+const fallbackUrl = 'http://127.0.0.1:54321';
+const fallbackKey = 'public-anon-key';
+
+if (!HAS_SUPABASE_CONFIG && import.meta.env.DEV) {
+  console.warn(
+    '[Supabase] Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY. Using fallback client for local/demo mode.'
+  );
+}
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+export const supabase = createClient<Database>(SUPABASE_URL ?? fallbackUrl, SUPABASE_PUBLISHABLE_KEY ?? fallbackKey, {
   auth: {
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
   }
 });
+
+export const isSupabaseConfigured = HAS_SUPABASE_CONFIG;
