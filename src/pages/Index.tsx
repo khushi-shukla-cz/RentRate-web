@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import Layout from "@/components/Layout";
 import PropertyCard from "@/components/PropertyCard";
 import type { PropertyCardData } from "@/components/PropertyCard";
-import { supabase } from "@/integrations/supabase/client";
+import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { properties as mockProperties } from "@/data/mockData";
 
@@ -22,12 +22,52 @@ const stats = [
   { value: "4.7/5", label: "Avg Trust Rating" },
   { value: "120+", label: "Verified Listings" },
 ];
+const FEATURED_CACHE_KEY = "rentrate_featured_cache_v1";
+const FEATURED_CACHE_TTL_MS = 5 * 60 * 1000;
+
+const getCachedFeatured = (): PropertyCardData[] | null => {
+  const raw = localStorage.getItem(FEATURED_CACHE_KEY);
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw) as { timestamp: number; data: PropertyCardData[] };
+    if (!Array.isArray(parsed.data)) return null;
+    if (Date.now() - parsed.timestamp > FEATURED_CACHE_TTL_MS) return null;
+    return parsed.data;
+  } catch {
+    return null;
+  }
+};
+
+const setCachedFeatured = (data: PropertyCardData[]) => {
+  localStorage.setItem(
+    FEATURED_CACHE_KEY,
+    JSON.stringify({
+      timestamp: Date.now(),
+      data,
+    })
+  );
+};
 
 const Index = () => {
   const [featured, setFeatured] = useState<PropertyCardData[]>([]);
 
   useEffect(() => {
     const loadFeatured = async () => {
+      const cachedFeatured = getCachedFeatured();
+      if (cachedFeatured?.length) {
+        setFeatured(cachedFeatured);
+      }
+
+      if (!isSupabaseConfigured) {
+        if (!cachedFeatured?.length) {
+          const fallback = mockProperties.slice(0, 3);
+          setFeatured(fallback);
+          setCachedFeatured(fallback);
+        }
+        return;
+      }
+
       const { data: propertyRows } = await supabase
         .from("properties")
         .select("id, title, image, furnishing, type, location, bedrooms, bathrooms, area, price, owner_id")
@@ -35,7 +75,9 @@ const Index = () => {
         .limit(3);
 
       if (!propertyRows?.length) {
-        setFeatured(mockProperties.slice(0, 3));
+        const fallback = mockProperties.slice(0, 3);
+        setFeatured(fallback);
+        setCachedFeatured(fallback);
         return;
       }
 
@@ -47,8 +89,7 @@ const Index = () => {
 
       const ratingByOwner = new Map((ownerProfiles ?? []).map((row) => [row.user_id, Number(row.average_rating ?? 0)]));
 
-      setFeatured(
-        propertyRows.map((row) => ({
+      const mappedFeatured = propertyRows.map((row) => ({
           id: row.id,
           title: row.title,
           image: row.image || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&h=400&fit=crop",
@@ -60,8 +101,10 @@ const Index = () => {
           area: Number(row.area ?? 0),
           price: Number(row.price ?? 0),
           ownerRating: ratingByOwner.get(row.owner_id) ?? 0,
-        }))
-      );
+        }));
+
+      setFeatured(mappedFeatured);
+      setCachedFeatured(mappedFeatured);
     };
 
     void loadFeatured();

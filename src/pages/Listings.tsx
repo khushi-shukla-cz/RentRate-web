@@ -4,12 +4,38 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Layout from "@/components/Layout";
 import PropertyCard from "@/components/PropertyCard";
-import { supabase } from "@/integrations/supabase/client";
+import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 import type { PropertyCardData } from "@/components/PropertyCard";
 import { properties as mockProperties } from "@/data/mockData";
 
 const furnishingOptions = ["All", "Furnished", "Semi-Furnished", "Unfurnished"];
 const typeOptions = ["All", "Apartment", "House", "Villa", "Studio"];
+const LISTINGS_CACHE_KEY = "rentrate_listings_cache_v1";
+const LISTINGS_CACHE_TTL_MS = 5 * 60 * 1000;
+
+const getCachedListings = (): PropertyCardData[] | null => {
+  const raw = localStorage.getItem(LISTINGS_CACHE_KEY);
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw) as { timestamp: number; data: PropertyCardData[] };
+    if (!Array.isArray(parsed.data)) return null;
+    if (Date.now() - parsed.timestamp > LISTINGS_CACHE_TTL_MS) return null;
+    return parsed.data;
+  } catch {
+    return null;
+  }
+};
+
+const setCachedListings = (data: PropertyCardData[]) => {
+  localStorage.setItem(
+    LISTINGS_CACHE_KEY,
+    JSON.stringify({
+      timestamp: Date.now(),
+      data,
+    })
+  );
+};
 
 const Listings = () => {
   const [properties, setProperties] = useState<PropertyCardData[]>([]);
@@ -23,14 +49,30 @@ const Listings = () => {
     const loadListings = async () => {
       setLoading(true);
 
+      const cachedListings = getCachedListings();
+      if (cachedListings?.length) {
+        setProperties(cachedListings);
+        setLoading(false);
+      }
+
+      if (!isSupabaseConfigured) {
+        if (!cachedListings?.length) {
+          setProperties(mockProperties);
+          setLoading(false);
+        }
+        return;
+      }
+
       const { data: propertyRows, error: propertyError } = await supabase
         .from("properties")
         .select("id, title, image, furnishing, type, location, bedrooms, bathrooms, area, price, owner_id")
         .order("created_at", { ascending: false });
 
       if (propertyError || !propertyRows) {
-        setProperties(mockProperties);
-        setLoading(false);
+        if (!cachedListings?.length) {
+          setProperties(mockProperties);
+          setLoading(false);
+        }
         return;
       }
 
@@ -48,8 +90,7 @@ const Listings = () => {
 
       const ratingByOwner = new Map((ownerProfiles ?? []).map((row) => [row.user_id, Number(row.average_rating ?? 0)]));
 
-      setProperties(
-        propertyRows.map((row) => ({
+      const mappedProperties = propertyRows.map((row) => ({
           id: row.id,
           title: row.title,
           image: row.image || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&h=400&fit=crop",
@@ -61,8 +102,10 @@ const Listings = () => {
           area: Number(row.area ?? 0),
           price: Number(row.price ?? 0),
           ownerRating: ratingByOwner.get(row.owner_id) ?? 0,
-        }))
-      );
+        }));
+
+      setProperties(mappedProperties);
+      setCachedListings(mappedProperties);
 
       setLoading(false);
     };

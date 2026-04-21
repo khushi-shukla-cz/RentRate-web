@@ -7,7 +7,7 @@ import TrustScoreBadge from "@/components/TrustScoreBadge";
 import { properties, users, reviews } from "@/data/mockData";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 
 interface PropertyDetailsView {
   id: string;
@@ -58,6 +58,60 @@ const PropertyDetails = () => {
       }
 
       setLoading(true);
+
+      if (!isSupabaseConfigured) {
+        const mockProperty = properties.find((p) => p.id === id);
+        if (mockProperty) {
+          setProperty({
+            id: mockProperty.id,
+            title: mockProperty.title,
+            images: mockProperty.images,
+            price: mockProperty.price,
+            location: mockProperty.location,
+            furnishing: mockProperty.furnishing,
+            bedrooms: mockProperty.bedrooms,
+            bathrooms: mockProperty.bathrooms,
+            area: mockProperty.area,
+            description: mockProperty.description,
+            amenities: mockProperty.amenities,
+            ownerId: mockProperty.ownerId,
+          });
+
+          const mockOwner = users.find((u) => u.id === mockProperty.ownerId);
+          setOwner(
+            mockOwner
+              ? {
+                  id: mockOwner.id,
+                  name: mockOwner.name,
+                  avatar: mockOwner.avatar,
+                  averageRating: mockOwner.averageRating,
+                  trustScore: mockOwner.trustScore,
+                  totalReviews: mockOwner.totalReviews,
+                  memberSince: mockOwner.memberSince,
+                }
+              : null
+          );
+
+          setOwnerReviews(
+            reviews
+              .filter((review) => review.reviewedUserId === mockProperty.ownerId)
+              .slice(0, 2)
+              .map((review) => ({
+                id: review.id,
+                comment: review.comment,
+                overallRating: review.overallRating,
+                date: review.date,
+              }))
+          );
+        } else {
+          setProperty(null);
+          setOwner(null);
+          setOwnerReviews([]);
+        }
+
+        setLoading(false);
+        return;
+      }
 
       const { data: propertyRow } = await supabase
         .from("properties")

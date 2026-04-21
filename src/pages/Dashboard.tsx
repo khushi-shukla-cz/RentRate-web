@@ -5,7 +5,7 @@ import TrustScoreBadge from "@/components/TrustScoreBadge";
 import PropertyCard from "@/components/PropertyCard";
 import ReviewCard from "@/components/ReviewCard";
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type { PropertyCardData } from "@/components/PropertyCard";
 import type { ReviewCardData } from "@/components/ReviewCard";
@@ -67,7 +67,7 @@ const Dashboard = () => {
       return;
     }
 
-    if (MOCK_AUTH_ENABLED) {
+    if (MOCK_AUTH_ENABLED || !isSupabaseConfigured) {
       setLoading(true);
 
       const ownerUser = mockUsers.find((item) => item.role === "owner");
@@ -233,7 +233,7 @@ const Dashboard = () => {
         amenities: "",
       });
 
-      toast({ title: "Mock listing created", description: "Saved locally for demo owner account." });
+      toast({ title: "Listing created", description: "Saved locally for this owner account." });
       setSubmittingListing(false);
       await loadDashboardData();
       return;
@@ -289,7 +289,7 @@ const Dashboard = () => {
       setDeletingListingId(listingId);
       const remaining = getStoredMockOwnerListings().filter((item) => item.id !== listingId);
       setStoredMockOwnerListings(remaining);
-      toast({ title: "Mock listing deleted", description: "Removed from local demo data." });
+      toast({ title: "Listing deleted", description: "Removed from local data." });
       setDeletingListingId(null);
       await loadDashboardData();
       return;
