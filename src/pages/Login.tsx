@@ -7,6 +7,8 @@ import Layout from "@/components/Layout";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
+const MOCK_AUTH_ENABLED = import.meta.env.VITE_USE_MOCK_AUTH !== "false";
+
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,39 +41,42 @@ const Login = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="rounded-lg border border-border bg-muted/50 p-3 text-xs text-muted-foreground">
-              <p className="font-medium text-foreground">Quick access accounts</p>
-              <div className="mt-2 space-y-2">
-                <div>
-                  <p>Owner: owner@rentrate.com</p>
-                  <p>Password: password123</p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail("owner@rentrate.com");
-                      setPassword("password123");
-                    }}
-                    className="text-primary hover:underline"
-                  >
-                    Use owner account
-                  </button>
-                </div>
-                <div>
-                  <p>Renter: renter@rentrate.com</p>
-                  <p>Password: password123</p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail("renter@rentrate.com");
-                      setPassword("password123");
-                    }}
-                    className="text-primary hover:underline"
-                  >
-                    Use renter account
-                  </button>
+            {MOCK_AUTH_ENABLED && (
+              <div className="rounded-lg border border-border bg-muted/50 p-3 text-xs text-muted-foreground">
+                <p className="font-medium text-foreground">Mock mode message</p>
+                <p className="mt-1">Mock authentication is active. Use the accounts below for quick sign in.</p>
+                <div className="mt-2 space-y-2">
+                  <div>
+                    <p>Owner: owner@rentrate.com</p>
+                    <p>Password: password123</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmail("owner@rentrate.com");
+                        setPassword("password123");
+                      }}
+                      className="text-primary hover:underline"
+                    >
+                      Use owner account
+                    </button>
+                  </div>
+                  <div>
+                    <p>Renter: renter@rentrate.com</p>
+                    <p>Password: password123</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmail("renter@rentrate.com");
+                        setPassword("password123");
+                      }}
+                      className="text-primary hover:underline"
+                    >
+                      Use renter account
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
             <div>
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />

@@ -3,8 +3,9 @@ import Layout from "@/components/Layout";
 import { Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { messages as seedMessages, users as seedUsers } from "@/data/mockData";
 
 interface MessageRow {
   id: string;
@@ -26,20 +27,85 @@ const Messages = () => {
   const [newMsg, setNewMsg] = useState("");
   const [allMessages, setAllMessages] = useState<MessageRow[]>([]);
   const [profilesById, setProfilesById] = useState<Record<string, ConversationProfile>>({});
+  const [usingSeedData, setUsingSeedData] = useState(false);
 
   const currentUserId = user?.id || "";
+  const currentUserRole = String(user?.user_metadata?.role ?? "").toLowerCase();
+  const seededUserId = currentUserRole === "owner" ? "u1" : currentUserRole === "tenant" ? "u2" : "";
+  const activeMessageUserId = usingSeedData && seededUserId ? seededUserId : currentUserId;
+
+  const mapSeedMessages = (): MessageRow[] =>
+    seedMessages.map((msg) => ({
+      id: msg.id,
+      sender_id: msg.senderId,
+      receiver_id: msg.receiverId,
+      content: msg.content,
+      created_at: msg.timestamp,
+    }));
+
+  const mapSeedProfilesByIds = (ids: string[]): Record<string, ConversationProfile> =>
+    ids.reduce<Record<string, ConversationProfile>>((acc, id) => {
+      const profile = seedUsers.find((item) => item.id === id);
+      if (!profile) return acc;
+
+      acc[id] = {
+        user_id: profile.id,
+        name: profile.name,
+        role: profile.role,
+        avatar_url: profile.avatar,
+      };
+      return acc;
+    }, {});
 
   useEffect(() => {
     const loadMessages = async () => {
       if (!currentUserId) return;
 
-      const { data: messageRows } = await supabase
+      if (!isSupabaseConfigured) {
+        setUsingSeedData(true);
+        const localRows = mapSeedMessages().filter(
+          (msg) => msg.sender_id === seededUserId || msg.receiver_id === seededUserId
+        );
+        setAllMessages(localRows);
+
+        const participantIds = Array.from(
+          new Set(
+            localRows
+              .flatMap((msg) => [msg.sender_id, msg.receiver_id])
+              .filter((id) => id && id !== seededUserId)
+          )
+        );
+        setProfilesById(mapSeedProfilesByIds(participantIds));
+        return;
+      }
+
+      const { data: messageRows, error: messageError } = await supabase
         .from("messages")
         .select("id, sender_id, receiver_id, content, created_at")
         .or(`sender_id.eq.${currentUserId},receiver_id.eq.${currentUserId}`)
         .order("created_at", { ascending: true });
 
       const rows = (messageRows ?? []) as MessageRow[];
+
+      if (messageError || rows.length === 0) {
+        setUsingSeedData(true);
+        const localRows = mapSeedMessages().filter(
+          (msg) => msg.sender_id === seededUserId || msg.receiver_id === seededUserId
+        );
+        setAllMessages(localRows);
+
+        const participantIds = Array.from(
+          new Set(
+            localRows
+              .flatMap((msg) => [msg.sender_id, msg.receiver_id])
+              .filter((id) => id && id !== seededUserId)
+          )
+        );
+        setProfilesById(mapSeedProfilesByIds(participantIds));
+        return;
+      }
+
+  setUsingSeedData(false);
       setAllMessages(rows);
 
       const participantIds = Array.from(
@@ -74,7 +140,7 @@ const Messages = () => {
     };
 
     void loadMessages();
-  }, [currentUserId]);
+  }, [currentUserId, seededUserId]);
 
   // Get unique conversations
   const conversationPartners = useMemo(
@@ -82,11 +148,11 @@ const Messages = () => {
       Array.from(
         new Set(
           allMessages
-            .filter((m) => m.sender_id === currentUserId || m.receiver_id === currentUserId)
-            .map((m) => (m.sender_id === currentUserId ? m.receiver_id : m.sender_id))
+            .filter((m) => m.sender_id === activeMessageUserId || m.receiver_id === activeMessageUserId)
+            .map((m) => (m.sender_id === activeMessageUserId ? m.receiver_id : m.sender_id))
         )
       ),
-    [allMessages, currentUserId]
+    [allMessages, activeMessageUserId]
   );
 
   const [activePartner, setActivePartner] = useState(conversationPartners[0] || "");
@@ -99,19 +165,32 @@ const Messages = () => {
 
   const partnerMessages = allMessages.filter(
     (m) =>
-      (m.sender_id === currentUserId && m.receiver_id === activePartner) ||
-      (m.sender_id === activePartner && m.receiver_id === currentUserId)
+      (m.sender_id === activeMessageUserId && m.receiver_id === activePartner) ||
+      (m.sender_id === activePartner && m.receiver_id === activeMessageUserId)
   );
 
   const partner = profilesById[activePartner];
 
   const handleSendMessage = async () => {
     const content = newMsg.trim();
-    if (!content || !activePartner || !currentUserId) return;
+    if (!content || !activePartner || !activeMessageUserId) return;
+
+    if (usingSeedData || !isSupabaseConfigured) {
+      const newLocalMessage: MessageRow = {
+        id: `local-${Date.now()}`,
+        sender_id: activeMessageUserId,
+        receiver_id: activePartner,
+        content,
+        created_at: new Date().toISOString(),
+      };
+      setAllMessages((prev) => [...prev, newLocalMessage]);
+      setNewMsg("");
+      return;
+    }
 
     const { data } = await supabase
       .from("messages")
-      .insert({ sender_id: currentUserId, receiver_id: activePartner, content })
+      .insert({ sender_id: activeMessageUserId, receiver_id: activePartner, content })
       .select("id, sender_id, receiver_id, content, created_at")
       .single();
 
@@ -173,8 +252,8 @@ const Messages = () => {
             )}
             <div className="flex-1 space-y-3 overflow-auto p-4">
               {partnerMessages.map((m) => (
-                <div key={m.id} className={`flex ${m.sender_id === currentUserId ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[70%] rounded-xl px-4 py-2 text-sm ${m.sender_id === currentUserId ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
+                <div key={m.id} className={`flex ${m.sender_id === activeMessageUserId ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[70%] rounded-xl px-4 py-2 text-sm ${m.sender_id === activeMessageUserId ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
                     {m.content}
                   </div>
                 </div>

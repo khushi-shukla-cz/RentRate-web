@@ -6,10 +6,13 @@ const Footer = () => (
       <div className="grid gap-8 md:grid-cols-4">
         <div>
           <Link to="/" className="flex items-center gap-2 mb-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <span className="text-xs font-bold text-primary-foreground">R</span>
-            </div>
-            <span className="text-lg font-heading font-bold text-foreground">RentRate</span>
+            <img
+              src="/logo.jpeg"
+              alt="RentRate logo"
+              style={{ height: '2.5rem', width: 'auto', borderRadius: '0.5rem', background: '#fff', padding: '2px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
+              loading="lazy"
+            />
+              {/* Removed repeated RentRate text for cleaner look */}
           </Link>
           <p className="text-sm text-muted-foreground">Building trust in the rental ecosystem through transparency and reviews.</p>
         </div>

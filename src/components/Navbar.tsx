@@ -26,10 +26,13 @@ const Navbar = () => {
     <nav className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-            <span className="text-sm font-bold text-primary-foreground">R</span>
-          </div>
-          <span className="text-xl font-heading font-bold text-foreground">RentRate</span>
+          <img
+            src="/logo.jpeg"
+            alt="RentRate logo"
+            style={{ height: '3rem', width: 'auto', borderRadius: '0.5rem', background: '#fff', padding: '2px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
+            loading="lazy"
+          />
+          {/* Removed repeated RentRate text for cleaner look */}
         </Link>
 
         {/* Desktop */}
