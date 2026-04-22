@@ -67,3 +67,22 @@
     @apply font-heading;
   }
 }
+
+@layer components {
+  .brand-logo {
+    @apply rounded-md bg-white object-contain shadow-sm;
+    padding: 2px;
+  }
+
+  .brand-logo--nav {
+    height: 3rem;
+    width: auto;
+    max-width: 9rem;
+  }
+
+  .brand-logo--footer {
+    height: 2.5rem;
+    width: auto;
+    max-width: 7.5rem;
+  }
+}

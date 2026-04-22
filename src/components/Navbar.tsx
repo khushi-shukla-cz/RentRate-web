@@ -29,8 +29,11 @@ const Navbar = () => {
           <img
             src="/logo.jpeg"
             alt="RentRate logo"
-            style={{ height: '3rem', width: 'auto', borderRadius: '0.5rem', background: '#fff', padding: '2px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
-            loading="lazy"
+            className="brand-logo brand-logo--nav"
+            width={144}
+            height={48}
+            loading="eager"
+            decoding="async"
           />
           {/* Removed repeated RentRate text for cleaner look */}
         </Link>

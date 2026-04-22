@@ -9,8 +9,11 @@ const Footer = () => (
             <img
               src="/logo.jpeg"
               alt="RentRate logo"
-              style={{ height: '2.5rem', width: 'auto', borderRadius: '0.5rem', background: '#fff', padding: '2px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
+              className="brand-logo brand-logo--footer"
+              width={120}
+              height={40}
               loading="lazy"
+              decoding="async"
             />
               {/* Removed repeated RentRate text for cleaner look */}
           </Link>
